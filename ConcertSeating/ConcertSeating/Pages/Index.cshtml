@@ -1,0 +1,62 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+
+<div class="table-responsive">
+    <table id="seats" class="table table-bordered">
+    </table>
+</div>
+
+<div id="debug"></div>
+
+@section Scripts {
+    <script src="~/lib/@@microsoft/signalr/dist/browser/signalr.js"></script>
+
+    <script type="text/javascript">
+        (async function () {
+            const num_cols = 25;
+            const num_rows = 15;
+
+            var tbl = document.getElementById('seats');
+
+            for (var i = 0; i < num_rows; i++) {
+                var tr = tbl.insertRow();
+                for (var j = 0; j < num_cols; j++) {
+                    var td = tr.insertCell();
+                    td.setAttribute('data-row', i);
+                    td.setAttribute('data-col', j);
+                }
+            }
+
+            var connection = new signalR.HubConnectionBuilder()
+                .withUrl('/seat')
+                .build();
+
+            tbl.addEventListener('click', async function (e) {
+                var target = e.target;
+                var row = parseInt(target.dataset.row);
+                var col = parseInt(target.dataset.col);
+
+                console.log("Seat selected: " + [col, row].join(','));
+                connection.invoke("select", row, col);
+            });
+
+            connection.on('select', function (row, col) {
+                console.log("From server, selected: " + [col, row].join(','));
+                var selector = `[data-row='${row}'][data-col='${col}']`;
+                var cell = document.querySelector(selector);
+                cell.setAttribute('data-selected', 'selected');
+                cell.style.backgroundColor = '#258795';
+            });
+
+            await connection.start();
+        })();
+    </script>
+}
